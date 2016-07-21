@@ -1,3 +1,5 @@
+"use strict";
+
 const net = require('net');
 
 let parseHeaders = headers => {
@@ -17,7 +19,7 @@ let parseHeaders = headers => {
         return {
             method: info[0],
             url: info[1],
-            protocolVersion: info[2],
+            protocolVersion: info[2]
         }
     };
 
