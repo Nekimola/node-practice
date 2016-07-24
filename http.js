@@ -2,50 +2,29 @@
 
 const net = require('net');
 
-let parseHeaders = headers => {
-        return headers.reduce((prev, current) => {
-            let headerArr = current.split(':'),
-                [key, ...value] = headerArr;
-
-            prev[headerArr[0]] = value.join('');
-
-            return prev;
-        }, {});
-    },
-
-    parseUrl = urlStr => {
-        var info = urlStr.split(' ');
-
-        return {
-            method: info[0],
-            url: info[1],
-            protocolVersion: info[2]
-        }
-    };
+const Request = require('./request.js');
+const Response = require('./response.js');
 
 
 module.exports = {
     createServer: callback => {
         return net.createServer(socket => {
             const separator = '\r\n\r\n';
-            let request = '';
+            let requestStr = '';
 
             socket.setEncoding('utf-8');
 
             socket.on('data', data => {
-                request += data;
+                requestStr += data;
 
-                if (request.indexOf(separator) === -1) {
+                if (requestStr.indexOf(separator) === -1) {
                     return;
                 }
 
-                let headersStr = request.split(separator)[0],
-                    headersArr = headersStr.split('\n'),
-                    [url, ...headers] = headersArr;
+                let request = new Request(requestStr.split(separator)[0]);
+                let response = new Response(socket);
 
-                socket.temp = Object.assign({ headers: parseHeaders(headers) }, parseUrl(url)) ;
-
-                callback(socket);
+                callback(request, response);
             });
         });
     }

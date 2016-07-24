@@ -1,36 +1,35 @@
 "use strict";
 
-const http = require('./http');
 const fs = require('fs');
 const mime = require('mime');
 
+const http = require('./http');
+
 const port = process.env.port || 3000;
-let setHeaders = function (data) {
-        const status = data.error ? 404 : 200,
-              type = mime.lookup(data.url);
 
-        return [
-            `HTTP/1.1 ${status} OK`,
-            `Content-Type: ${type}; charset=UTF-8`,
-            ``,
-            ``
-        ].join(`\r\n`);
-    };
+let server = http.createServer((request, response) => {
+    const url = request.url,
+          path = './public' + url;
 
-
-let server = http.createServer(socket => {
-    fs.readFile('./public' + socket.temp.url, function (err, data) {
+    fs.stat(path, function (err) {
         if (err) {
-            socket.write(setHeaders({ error: true }));
-            socket.end('Something went wrong.');
+            response.writeHead(404);
+            response.end(`${url}: The requested resource could not be found.`);
             return;
         }
 
-        socket.write(setHeaders({
-            error: false,
-            url: socket.temp.url
-        }));
-        socket.end(data);
+        fs.readFile('./public' + url, function (err, data) {
+            if (err) {
+                response.writeHead(503);
+                response.end('Something went wrong.');
+                return;
+            }
+
+            const type = mime.lookup(url);
+
+            response.writeHead(200, {'Content-Type': `${type}; charset=UTF-8`});
+            response.end(data);
+        });
     });
 });
 
