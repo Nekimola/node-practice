@@ -18,7 +18,7 @@ let server = http.createServer((request, response) => {
             return;
         }
 
-        fs.readFile('./public' + url, function (err, data) {
+        fs.readFile(path, function (err, data) {
             if (err) {
                 response.writeHead(503);
                 response.end('Something went wrong.');
