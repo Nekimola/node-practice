@@ -9,10 +9,10 @@ module.exports = class Request {
 
     _parseHeaders (headers) {
         return headers.reduce((prev, current) => {
-            let headerArr = current.split(':'),
-                [key, ...value] = headerArr;
+            let headerArr = current.split(':');
+            let [key, ...value] = headerArr;
 
-            prev[headerArr[0]] = value.join('');
+            prev[key] = value.join('');
 
             return prev;
         }, {});
