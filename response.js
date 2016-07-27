@@ -23,7 +23,7 @@ module.exports = class Response extends Writable {
 
     writeHead (status = 200, headers) {
         if (this.writeHeadWasCalled) {
-            throw Error('WriteHead was already called.');
+            throw Error('Headers were already set.');
         }
 
         this.headers.push(`HTTP/1.1 ${status} OK`);
@@ -40,7 +40,7 @@ module.exports = class Response extends Writable {
 
     setHeader (key, header) {
         if (this.writeHeadWasCalled) {
-            throw Error('WriteHead was already called.');
+            throw Error('Headers were already set.');
         }
 
         if (Array.isArray(header)) {
