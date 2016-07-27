@@ -11,6 +11,10 @@ let server = http.createServer((request, response) => {
     const url = request.url,
           path = './public' + url;
 
+    request.on('data', function () {
+
+    });
+
     fs.stat(path, function (err) {
         if (err) {
             response.writeHead(404);

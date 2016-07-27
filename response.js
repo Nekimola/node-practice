@@ -1,14 +1,29 @@
+const Writable = require('stream').Writable;
 const fs = require('fs');
 const mime = require('mime');
 
-module.exports = class Response {
-    constructor (socket) {
+module.exports = class Response extends Writable {
+    constructor (socket, options = {}) {
+        super(options);
+
         this.socket = socket;
         this.writeHeadWasCalled = false;
         this.headers = [];
     };
 
+    _write (data, encoding, callback) {
+        if (!this.writeHeadWasCalled) {
+            this.writeHead();
+        }
+
+        return this.socket.write(data, encoding, callback);
+    }
+
     writeHead (status = 200, headers) {
+        // if (this.writeHeadWasCalled) {
+        //     throw Error('WriteHead was already called.');
+        // }
+
         if (this.writeHeadWasCalled) {
             return;
         }
@@ -22,10 +37,14 @@ module.exports = class Response {
             });
         }
 
-        this.write(this._headersToString());
+        this.socket.write(this._headersToString());
     };
 
     setHeader (key, header) {
+        // if (this.writeHeadWasCalled) {
+        //     throw Error('WriteHead was already called.');
+        // }
+
         if (Array.isArray(header)) {
             header = header.join(', ');
         }
@@ -33,21 +52,21 @@ module.exports = class Response {
         this.headers.push(`${key}: ${header}`);
     };
 
-    write (data) {
-        if (!this.writeHeadWasCalled) {
-            this.writeHead();
-        }
+    // write (data) {
+    //     if (!this.writeHeadWasCalled) {
+    //         this.writeHead();
+    //     }
+    //
+    //     this.socket.write(data);
+    // };
 
-        this.socket.write(data);
-    };
-
-    end (data) {
-        if (!this.writeHeadWasCalled) {
-            this.writeHead();
-        }
-
-        this.socket.end(data);
-    };
+    // end (data) {
+    //     if (!this.writeHeadWasCalled) {
+    //         this.writeHead();
+    //     }
+    //
+    //     this.socket.end(data);
+    // };
 
     _headersToString () {
         return this.headers

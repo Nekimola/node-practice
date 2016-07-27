@@ -1,14 +1,48 @@
-module.exports = class Request {
-    constructor (headersStr) {
+const Readable = require('stream').Readable;
+// const Readable = require('stream')
+
+module.exports = class Request extends  Readable {
+    constructor (socket) {
+        super();
+
+        this.socket = socket;
+
+        this._parseData();
+    };
+
+    _read () {
+        this.push(this.socket.read());
+    }
+
+    _parseData () {
+        const separator = '\r\n\r\n';
+        let requestData = new Buffer(0);
+        let index;
+
+        this.socket.on('data', data => {
+            requestData = Buffer.concat([requestData, data]);
+            index = requestData.indexOf(separator);
+
+            if (index === -1) {
+                return;
+            }
+
+            this._setHeaders(requestData, index);
+
+            this.socket.unshift(requestData.slice(index));
+            this.socket.pause();
+        });
+    };
+
+
+    _setHeaders (requestData, index) {
+        let headersStr = requestData.slice(0, index).toString();
         let headersArr = headersStr.split('\n'),
             [url, ...headers] = headersArr;
 
-        this.headers = this._parseHeaders(headers);
         Object.assign(this, this._parseUrl(url)) ;
-    };
 
-    _parseHeaders (headers) {
-        return headers.reduce((prev, current) => {
+        this.headers = headers.reduce((prev, current) => {
             let headerArr = current.split(':');
             let [key, ...value] = headerArr;
 
@@ -16,6 +50,8 @@ module.exports = class Request {
 
             return prev;
         }, {});
+
+        this.emit('has_headers');
     };
 
     _parseUrl (urlStr) {

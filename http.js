@@ -9,23 +9,14 @@ const Response = require('./response.js');
 module.exports = {
     createServer: callback => {
         return net.createServer(socket => {
-            const separator = '\r\n\r\n';
-            let requestStr = '';
+            let request = new Request(socket);
+            let response = new Response(socket);
 
-            socket.setEncoding('utf-8');
+            request.on('has_headers', function () {
+                console.log(request.headers);
 
-            socket.on('data', data => {
-                requestStr += data;
-
-                if (requestStr.indexOf(separator) === -1) {
-                    return;
-                }
-
-                let request = new Request(requestStr.split(separator)[0]);
-                let response = new Response(socket);
-
-                callback(request, response);
-            });
+                // callback(request, response);
+            })
         });
     }
 };
