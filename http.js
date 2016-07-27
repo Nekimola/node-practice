@@ -13,9 +13,7 @@ module.exports = {
             let response = new Response(socket);
 
             request.on('has_headers', function () {
-                console.log(request.headers);
-
-                // callback(request, response);
+                 callback(request, response);
             })
         });
     }

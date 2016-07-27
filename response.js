@@ -9,6 +9,8 @@ module.exports = class Response extends Writable {
         this.socket = socket;
         this.writeHeadWasCalled = false;
         this.headers = [];
+
+        this.on('finish', () => this.socket.end());
     };
 
     _write (data, encoding, callback) {
@@ -20,16 +22,11 @@ module.exports = class Response extends Writable {
     }
 
     writeHead (status = 200, headers) {
-        // if (this.writeHeadWasCalled) {
-        //     throw Error('WriteHead was already called.');
-        // }
-
         if (this.writeHeadWasCalled) {
-            return;
+            throw Error('WriteHead was already called.');
         }
 
         this.headers.push(`HTTP/1.1 ${status} OK`);
-        this.writeHeadWasCalled = true;
 
         if (headers) {
             Object.keys(headers).forEach(key => {
@@ -38,12 +35,13 @@ module.exports = class Response extends Writable {
         }
 
         this.socket.write(this._headersToString());
+        this.writeHeadWasCalled = true;
     };
 
     setHeader (key, header) {
-        // if (this.writeHeadWasCalled) {
-        //     throw Error('WriteHead was already called.');
-        // }
+        if (this.writeHeadWasCalled) {
+            throw Error('WriteHead was already called.');
+        }
 
         if (Array.isArray(header)) {
             header = header.join(', ');
@@ -51,22 +49,6 @@ module.exports = class Response extends Writable {
 
         this.headers.push(`${key}: ${header}`);
     };
-
-    // write (data) {
-    //     if (!this.writeHeadWasCalled) {
-    //         this.writeHead();
-    //     }
-    //
-    //     this.socket.write(data);
-    // };
-
-    // end (data) {
-    //     if (!this.writeHeadWasCalled) {
-    //         this.writeHead();
-    //     }
-    //
-    //     this.socket.end(data);
-    // };
 
     _headersToString () {
         return this.headers

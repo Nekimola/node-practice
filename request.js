@@ -1,18 +1,18 @@
 const Readable = require('stream').Readable;
-// const Readable = require('stream')
 
 module.exports = class Request extends  Readable {
     constructor (socket) {
         super();
 
         this.socket = socket;
+        this.hasHeaders = false;
 
         this._parseData();
     };
 
     _read () {
         this.push(this.socket.read());
-    }
+    };
 
     _parseData () {
         const separator = '\r\n\r\n';
@@ -23,7 +23,7 @@ module.exports = class Request extends  Readable {
             requestData = Buffer.concat([requestData, data]);
             index = requestData.indexOf(separator);
 
-            if (index === -1) {
+            if (this.hasHeaders) {
                 return;
             }
 
@@ -34,11 +34,10 @@ module.exports = class Request extends  Readable {
         });
     };
 
-
     _setHeaders (requestData, index) {
         let headersStr = requestData.slice(0, index).toString();
-        let headersArr = headersStr.split('\n'),
-            [url, ...headers] = headersArr;
+        let headersArr = headersStr.split('\n');
+        let [url, ...headers] = headersArr;
 
         Object.assign(this, this._parseUrl(url)) ;
 
@@ -51,6 +50,7 @@ module.exports = class Request extends  Readable {
             return prev;
         }, {});
 
+        this.hasHeaders = true;
         this.emit('has_headers');
     };
 
