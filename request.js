@@ -30,7 +30,7 @@ module.exports = class Request extends  Readable {
             this._setHeaders(requestData, index);
 
             this.socket.unshift(requestData.slice(index));
-            this.socket.pause();
+            //this.socket.pause();
         });
     };
 
