@@ -5,8 +5,6 @@ module.exports = class Request extends  Readable {
         super();
 
         this.socket = socket;
-        this.hasHeaders = false;
-
         this._parseData();
     };
 
@@ -17,26 +15,28 @@ module.exports = class Request extends  Readable {
     _parseData () {
         const separator = '\r\n\r\n';
         let requestData = new Buffer(0);
-        let index;
 
-        this.socket.on('data', data => {
+        let onData = (data) => {
             requestData = Buffer.concat([requestData, data]);
-            index = requestData.indexOf(separator);
+            let index = requestData.indexOf(separator);
 
-            if (this.hasHeaders) {
+            if (index === -1) {
                 return;
             }
 
-            this._setHeaders(requestData, index);
+            this._parseHeaders(requestData, index);
 
-            this.socket.unshift(requestData.slice(index));
             //this.socket.pause();
-        });
+            this.socket.removeListener('data', onData);
+            this.socket.unshift(requestData.slice(index));
+        };
+
+        this.socket.on('data', onData);
     };
 
-    _setHeaders (requestData, index) {
+    _parseHeaders(requestData, index) {
         let headersStr = requestData.slice(0, index).toString();
-        let headersArr = headersStr.split('\n');
+        let headersArr = headersStr.split('\r\n');
         let [url, ...headers] = headersArr;
 
         Object.assign(this, this._parseUrl(url)) ;
@@ -50,7 +50,6 @@ module.exports = class Request extends  Readable {
             return prev;
         }, {});
 
-        this.hasHeaders = true;
         this.emit('has_headers');
     };
 
@@ -64,3 +63,48 @@ module.exports = class Request extends  Readable {
         }
     };
 };
+
+
+// Pull off a header delimited by \n\n
+// use unshift() if we get too much
+// Call the callback with (error, header, stream)
+const StringDecoder = require('string_decoder').StringDecoder;
+
+
+function parseHeader(stream, callback) {
+    stream.on('error', callback);
+    stream.on('readable', onReadable);
+
+    const decoder = new StringDecoder('utf8');
+
+    var header = '';
+
+    function onReadable() {
+        var chunk;
+
+        while (null !== (chunk = stream.read())) {
+            var str = decoder.write(chunk);
+
+            if (str.match(/\n\n/)) {
+                // found the header boundary
+                var split = str.split(/\n\n/);
+
+                header += split.shift();
+
+                const remaining = split.join('\n\n');
+                const buf = Buffer.from(remaining, 'utf8');
+
+                if (buf.length)
+                    stream.unshift(buf);
+
+                stream.removeListener('error', callback);
+                stream.removeListener('readable', onReadable);
+                // now the body of the message can be read from the stream.
+                callback(null, header, stream);
+            } else {
+                // still reading the header.
+                header += str;
+            }
+        }
+    }
+}

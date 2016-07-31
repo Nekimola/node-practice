@@ -4,19 +4,24 @@ const fs = require('fs');
 const mime = require('mime');
 
 const http = require('./http');
-const formData = require('./form-data');
+const FormData = require('./form-data');
 
 const port = process.env.port || 3000;
 
 let server = http.createServer((request, response) => {
     const url = request.url;
 
-    if (url === '/login') {
-        formData.get(request.socket, request.headers)
+    if (url === '/login' && request.method === 'POST') {
+        const formData = new FormData();
+
+        formData.get(request)
             .then(data => {
                 console.log(data);
             });
 
+        request.on('end', () => {
+            response.end('Success');
+        });
         return;
     }
 
