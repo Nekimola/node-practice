@@ -49,7 +49,7 @@ module.exports = class FormData {
             let result = [];
             let requestData = new Buffer(0);
 
-            request.socket.on('data', data => {
+            request.on('data', data => {
                 requestData = Buffer.concat([requestData, data]);
 
                 if (requestData.indexOf(finishSep) === -1) {
@@ -79,6 +79,7 @@ module.exports = class FormData {
                 });
 
                 resolve(result);
+                request.emit('end');
             });
         });
     }

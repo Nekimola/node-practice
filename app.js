@@ -16,7 +16,7 @@ let server = http.createServer((request, response) => {
 
         formData.get(request)
             .then(data => {
-                console.log(data);
+                console.log('Parsed form', data);
             });
 
         request.on('end', () => {

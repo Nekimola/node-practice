@@ -9,7 +9,13 @@ module.exports = class Request extends  Readable {
     };
 
     _read () {
-        this.push(this.socket.read());
+        let onData = data => {
+            this.socket.removeListener('data', onData);
+            this.push(data);
+
+        };
+
+        this.socket.on('data', onData);
     };
 
     _parseData () {
@@ -26,7 +32,6 @@ module.exports = class Request extends  Readable {
 
             this._parseHeaders(requestData, index);
 
-            //this.socket.pause();
             this.socket.removeListener('data', onData);
             this.socket.unshift(requestData.slice(index));
         };
