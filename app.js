@@ -12,16 +12,22 @@ let server = http.createServer((request, response) => {
     const url = request.url;
 
     if (url === '/login' && request.method === 'POST') {
-        const formData = new FormData();
+        const formData = new FormData(request);
 
-        formData.get(request)
+        formData.get()
             .then(data => {
                 console.log('Parsed form', data);
             });
 
         request.on('end', () => {
-            response.end('Success');
+            response.end('The form was successfully sent.');
         });
+
+        request.on('error', () => {
+            response.writeHead(503);
+            response.end('Something went wrong.');
+        });
+
         return;
     }
 
