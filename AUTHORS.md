@@ -1,2 +1,0 @@
-Pisklov Oleg
-Valeriy Ilihmetov
