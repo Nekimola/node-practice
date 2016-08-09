@@ -21,6 +21,11 @@ module.exports = (req, res, next) => {
 
     const userInfo = jwt.verify(token, config.tokenSecret);
 
+    if (!userInfo.id) {
+        res.status(401).send('Invalid token');
+        return;
+    }
+
     dbConnection
         .then(db => {
             const logout = db.getCollection('logout');
