@@ -4,6 +4,7 @@ const express = require('express');
 const util = require('util');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
+const passwordHash = require('password-hash');
 
 const dbConnection = require('../db-connection');
 const config = require('../config');
@@ -22,9 +23,9 @@ router.post('/login', (req, res) => {
     dbConnection
         .then(db => {
             const users = db.getCollection('users');
-            const user = users.findOne({ email, password });
+            const user = users.findOne({ email });
 
-            if (!user) {
+            if (!user || !passwordHash.verify(password, user.password)) {
                 res.status(401).send(errorMessage);
                 return;
             }
@@ -41,15 +42,12 @@ router.post('/login', (req, res) => {
 
 
 router.post('/logout', (req, res) => {
-    const token = req.headers.authorization.split(' ')[1];
-    const userInfo = jwt.verify(token, config.tokenSecret);
-
     dbConnection
         .then(db => {
             const logout = db.getCollection('logout');
 
             logout.insert({
-                user_id: userInfo.id,
+                user_id: req.session.user.$loki,
                 date: (new Date()).getTime()
             });
 
