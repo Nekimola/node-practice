@@ -1,0 +1,22 @@
+{% extends "./layout.twig.html" %}
+
+
+{% block content %}
+<form action="/auth/login" method="post">
+    <input type="text" name="name">
+    <input type="password" name="password">
+    <input type="submit">
+</form>
+
+<form action="/auth/logout" method="post">
+    <input type="hidden" value="{{ token }}" name="token">
+    <input type="submit" value="Log out">
+</form>
+
+{% if name %}
+    {{ name }}
+    {{ pass }}
+    {{ token }}
+{% endif %}
+
+{% endblock %}
