@@ -14,6 +14,7 @@ const WebSocketServer = require('ws').Server;
 
 var port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
+app.set('clients', []);
 
 /**
  * Create HTTP server.
@@ -22,27 +23,12 @@ app.set('port', port);
 var server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-wss.broadcast = function broadcast(data) {
-  wss.clients.forEach(function each(client) {
-    client.send(data);
-  });
-};
-
 
 wss.on('connection', ws => {
-    ws.on('message', message => {
-        const msg = JSON.parse(message);
+  let clients = app.get('clients');
 
-        if (msg.action === 'add') {
-          console.log(message);
-          console.log(app.get('games'));
-
-        }
-
-        if (msg.action === 'remove') {
-
-        }
-    });
+  clients.push(ws);
+  app.set('clients', clients);
 });
 
 /**
