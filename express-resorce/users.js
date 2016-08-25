@@ -1,6 +1,6 @@
 module.exports = {
     index: (req, res) => {
-        res.json({"message": 'Index'});
+        res.json({ message: 'Index' });
     },
 
     create: (req, res) => {
@@ -21,7 +21,7 @@ module.exports = {
 
     load: (req, res) => {
         return new Promise(resolve => {
-            req.entity = {'message': "It Works"};
+            req.entity = { message: 'It Works' };
             resolve();
         });
     }

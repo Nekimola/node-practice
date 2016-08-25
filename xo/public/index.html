@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>xo</title>
+    <link rel="stylesheet" href="stylesheets/style.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.8/angular.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/angular-websocket/2.0.1/angular-websocket.min.js"></script>
+    <script src="main.js"></script>
+</head>
+<body ng-app="heroApp">
+    <div ng-controller="MainCtrl as main">
+        <form>
+            <button class="btn btn-default" ng-click="main.createGame(gameId)">Crate Game</button>
+            <div class="form-group">
+                <input class="form-control" type="text" ng-model="gameId">
+            </div>
+        </form>
+
+        <ul>
+            <li ng-repeat="game in main.games">{{game.gameId}} <a href="#" ng-click="main.deleteGame($event, game.gameId)">delete</a></li>
+        </ul>
+    </div>
+</body>
+</html>

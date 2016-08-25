@@ -6,3 +6,16 @@ body {
 a {
   color: #00B7FF;
 }
+
+form {
+  width: 310px;
+}
+
+
+button {
+  float: right;
+}
+
+.form-control {
+  width: 200px !important;
+}
