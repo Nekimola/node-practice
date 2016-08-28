@@ -19,7 +19,13 @@
         </form>
 
         <ul>
-            <li ng-repeat="game in main.games">{{game.gameId}} <a href="#" ng-click="main.deleteGame($event, game.gameId)">delete</a></li>
+            <li ng-repeat="game in main.games">{{game.gameId}}
+                <a href="#"
+                   ng-if="game.hostId !== main.clientId"
+                   ng-click="main.startGame($event, game.gameId)">start</a>
+                <a href="#"
+                   ng-click="main.deleteGame($event, game.gameId)">delete</a>
+            </li>
         </ul>
     </div>
 </body>

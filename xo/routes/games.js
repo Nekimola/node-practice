@@ -2,7 +2,13 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const EventEmitter = require('events');
-const ee = new EventEmitter();
+
+class Game extends EventEmitter {
+    constructor (options) {
+        super();
+        Object.assign(this, options);
+    }
+}
 
 let games = [];
 
@@ -28,25 +34,47 @@ const createClientId = () => {
 };
 
 
+/**
+ * Get games list
+ */
 router.get('/', (req, res, next) => {
-    res.json(games);
+    res.json(games.map(game => {
+        return {
+            gameId  : game.gameId,
+            hostId  : game.hostId,
+            clientId: game.clientId,
+            status  : game.status
+        };
+    }));
 });
 
 
+/**
+ * Create new game
+ */
 router.post('/', (req, res, next) => {
     const gameId = req.body.gameId;
-    const clientId = req.cookies.clientId || createClientId();
-    const game = {
+    const hostId = req.cookies.clientId || createClientId();
+
+    if (!gameId) {
+        res.status(400).send('No gameId provided.');
+        return;
+    }
+
+    const game = new Game({
         gameId,
-        clientId
-    };
+        hostId,
+        status: 'new',
+        clientId: null,
+        clientRes: null
+    });
 
     if (games.some(g => g.gameId === game.gameId)) {
         res.status(409).send('Game name is already in use.');
         return;
     }
 
-    if (games.some(g => g.clientId === game.clientId)) {
+    if (games.some(g => g.hostId === hostId)) {
         res.status(400).send('You can\'t create more than one game.');
         return;
     }
@@ -55,14 +83,30 @@ router.post('/', (req, res, next) => {
 
     broadcast(req, {
         action: 'add',
-        gameId
+        gameId,
+        hostId
     });
 
-    res.cookie('clientId', clientId);
-    res.json(game);
+    game.on('start', () => {
+        console.log('Someone started');
+        broadcast(req, {
+            action: 'start',
+            gameId,
+            hostId
+        });
+    });
+
+    res.cookie('clientId', hostId);
+    res.json({
+        gameId,
+        hostId
+    });
 });
 
 
+/**
+ * Delete game
+ */
 router.delete('/', (req, res) => {
     const { gameId } = req.query;
     const { clientId } = req.cookies;
@@ -74,8 +118,8 @@ router.delete('/', (req, res) => {
         return;
     }
 
-    if (game.clientId !== clientId) {
-        res.status(401).send('It\'s not your game man.');
+    if (game.hostId !== clientId) {
+        res.status(401).send('It\'s not your game, you can\'t delete it.');
         return;
     }
 
@@ -92,16 +136,39 @@ router.delete('/', (req, res) => {
 
 router.post('/start', (req, res) => {
     const { gameId } = req.body;
+    const clientId = req.cookies.clientId || createClientId();
 
-    if (gameId) {
+    if (!gameId) {
         res.status(400).send('No gameId provided.');
         return;
     }
 
-    if (ee.emit(`gameStart:${gameId}`)) {
+    const game = games.find(g => g.gameId === gameId);
 
+    if (game.status === 'pending' && game.hostId !== clientId) {
+        res.status(401).send('Game is waiting for host to get started.');
+        return;
     }
 
+    if (game.status === 'pending' && game.hostId === clientId) {
+        game.status = 'started';
+        game.clientRes.status(200).send('Game started.');
+        res.status(200).send('Game started.');
+        return;
+    }
+
+    if (game.status === 'new') {
+        game.status = 'pending';
+        game.clientId = clientId;
+        game.clientRes = res;
+        game.emit('start');
+    }
+
+    setTimeout(() => {
+        if (game.status === 'pending') {
+            res.status(400).send('Timeout error.');
+        }
+    }, 30000)
 });
 
 module.exports = router;
