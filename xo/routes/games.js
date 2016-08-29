@@ -67,7 +67,8 @@ router.post('/', (req, res, next) => {
         status: 'new',
         clientId: null,
         clientRes: null,
-        turn: null
+        turn: null,
+        moves: []
     });
 
     if (games.some(g => g.gameId === game.gameId)) {
@@ -187,8 +188,6 @@ router.post('/start', (req, res) => {
 });
 
 
-let moves = [];
-
 router.post('/:gameId/move', (req, res) => {
     const { move } = req.body;
     const { clientId } = req.headers;
@@ -205,7 +204,7 @@ router.post('/:gameId/move', (req, res) => {
         return;
     }
 
-    if (moves.indexOf(move) !== -1) {
+    if (game.moves.indexOf(move) !== -1) {
       res.status(400).send('Wrong cell.');
       return;
     }
@@ -216,7 +215,7 @@ router.post('/:gameId/move', (req, res) => {
       return;
     }
 
-    moves.push(move);
+    game.moves.push(move);
     game.emit('move', { move });
     res.json({ move });
 });
@@ -230,7 +229,15 @@ router.get('/:gameId/move', (req, res) => {
     res.json({
       move: event.move
     });
-  });  
+  });
 });
+
+
+router.get('/:gameId', (req, res) => {
+  const { gameId } = req.params;
+  const game = games.find(g => g.gameId === gameId);
+
+});
+
 
 module.exports = router;
