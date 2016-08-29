@@ -66,7 +66,8 @@ router.post('/', (req, res, next) => {
         hostId,
         status: 'new',
         clientId: null,
-        clientRes: null
+        clientRes: null,
+        turn: null
     });
 
     if (games.some(g => g.gameId === game.gameId)) {
@@ -152,8 +153,22 @@ router.post('/start', (req, res) => {
 
     if (game.status === 'pending' && game.hostId === clientId) {
         game.status = 'started';
-        game.clientRes.status(200).send('Game started.');
-        res.status(200).send('Game started.');
+        gameInfo = {
+          gameId: game.gameId,
+          hostId: game.hostId,
+          clientId: game.clientId
+        };
+
+        game.clientRes.json(Object.assign(gameInfo, {
+          turn: false
+        }));
+
+        res.json(Object.assign(gameInfo, {
+          turn: true
+        }));
+
+        game.turn = game.hostId;
+
         return;
     }
 
@@ -169,6 +184,53 @@ router.post('/start', (req, res) => {
             res.status(400).send('Timeout error.');
         }
     }, 30000)
+});
+
+
+let moves = [];
+
+router.post('/:gameId/move', (req, res) => {
+    const { move } = req.body;
+    const { clientId } = req.headers;
+    const { gameId } = req.params;
+    const game = games.find(g => g.gameId === gameId);
+
+    if (!clientId) {
+        res.status(403).send('No clientId provided.');
+        return;
+    }
+
+    if (!game) {
+        res.status(404).send('Wrong gameId.');
+        return;
+    }
+
+    if (moves.indexOf(move) !== -1) {
+      res.status(400).send('Wrong cell.');
+      return;
+    }
+
+    if (((!move.length || move.length % 2) && clientId === game.turn) ||
+        (!(move.length % 2) && clientId !== game.turn)) {
+      res.status(400).send('It\'s not your turn.');
+      return;
+    }
+
+    moves.push(move);
+    game.emit('move', { move });
+    res.json({ move });
+});
+
+
+router.get('/:gameId/move', (req, res) => {
+  const { gameId } = req.params;
+  const game = games.find(g => g.gameId === gameId);
+
+  game.on('move', event => {
+    res.json({
+      move: event.move
+    });
+  });  
 });
 
 module.exports = router;
