@@ -51,9 +51,12 @@
                     this.games = this.games.filter(g => g.gameId !== msg.gameId);
                 }
 
-                if (msg.action === 'start') {
+                if (msg.action === 'connected') {
                     if (this.clientId === msg.hostId) {
-                        GameSrv.start(msg.gameId);
+                        setTimeout(() => {
+                            GameSrv.start(msg.gameId);
+                        }, 5000);
+
                     }
                 }
             });

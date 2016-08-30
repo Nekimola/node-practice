@@ -1,14 +1,8 @@
 const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
-const EventEmitter = require('events');
 
-class Game extends EventEmitter {
-    constructor (options) {
-        super();
-        Object.assign(this, options);
-    }
-}
+const Game = require('../game');
 
 let games = [];
 
@@ -40,10 +34,10 @@ const createClientId = () => {
 router.get('/', (req, res, next) => {
     res.json(games.map(game => {
         return {
-            gameId  : game.gameId,
-            hostId  : game.hostId,
+            gameId: game.gameId,
+            hostId: game.hostId,
             clientId: game.clientId,
-            status  : game.status
+            state: game.state
         };
     }));
 });
@@ -61,17 +55,7 @@ router.post('/', (req, res, next) => {
         return;
     }
 
-    const game = new Game({
-        gameId,
-        hostId,
-        status: 'new',
-        clientId: null,
-        clientRes: null,
-        turn: null,
-        moves: []
-    });
-
-    if (games.some(g => g.gameId === game.gameId)) {
+    if (games.some(g => g.gameId === gameId)) {
         res.status(409).send('Game name is already in use.');
         return;
     }
@@ -81,6 +65,8 @@ router.post('/', (req, res, next) => {
         return;
     }
 
+    const game = new Game({ gameId, hostId });
+
     games.push(game);
 
     broadcast(req, {
@@ -89,20 +75,8 @@ router.post('/', (req, res, next) => {
         hostId
     });
 
-    game.on('start', () => {
-        console.log('Someone started');
-        broadcast(req, {
-            action: 'start',
-            gameId,
-            hostId
-        });
-    });
-
     res.cookie('clientId', hostId);
-    res.json({
-        gameId,
-        hostId
-    });
+    res.json({ gameId, hostId });
 });
 
 
@@ -147,41 +121,38 @@ router.post('/start', (req, res) => {
 
     const game = games.find(g => g.gameId === gameId);
 
-    if (game.status === 'pending' && game.hostId !== clientId) {
-        res.status(401).send('Game is waiting for host to get started.');
-        return;
-    }
+    game.on('error', e => {
+        res.status(e.status).send(e.message);
+    });
 
-    if (game.status === 'pending' && game.hostId === clientId) {
-        game.status = 'started';
-        gameInfo = {
-          gameId: game.gameId,
-          hostId: game.hostId,
-          clientId: game.clientId
+    game.on('connected', () => {
+        broadcast(req, {
+            action: 'connected',
+            hostId: game.hostId,
+            gameId
+        });
+    });
+
+    game.on('started', () => {
+        const gameInfo = {
+            gameId: game.gameId,
+            hostId: game.hostId,
+            clientId: game.clientId
         };
 
+
+        game.hostRes.json(Object.assign(gameInfo, {
+            turn: true
+        }));
         game.clientRes.json(Object.assign(gameInfo, {
-          turn: false
+            turn: false
         }));
+    });
 
-        res.json(Object.assign(gameInfo, {
-          turn: true
-        }));
-
-        game.turn = game.hostId;
-
-        return;
-    }
-
-    if (game.status === 'new') {
-        game.status = 'pending';
-        game.clientId = clientId;
-        game.clientRes = res;
-        game.emit('start');
-    }
+    game.connect(clientId, res);
 
     setTimeout(() => {
-        if (game.status === 'pending') {
+        if (!res.headersSent) {
             res.status(400).send('Timeout error.');
         }
     }, 30000)
@@ -205,14 +176,14 @@ router.post('/:gameId/move', (req, res) => {
     }
 
     if (game.moves.indexOf(move) !== -1) {
-      res.status(400).send('Wrong cell.');
-      return;
+        res.status(400).send('Wrong cell.');
+        return;
     }
 
     if (((!move.length || move.length % 2) && clientId === game.turn) ||
         (!(move.length % 2) && clientId !== game.turn)) {
-      res.status(400).send('It\'s not your turn.');
-      return;
+        res.status(400).send('It\'s not your turn.');
+        return;
     }
 
     game.moves.push(move);
@@ -222,20 +193,20 @@ router.post('/:gameId/move', (req, res) => {
 
 
 router.get('/:gameId/move', (req, res) => {
-  const { gameId } = req.params;
-  const game = games.find(g => g.gameId === gameId);
+    const { gameId } = req.params;
+    const game = games.find(g => g.gameId === gameId);
 
-  game.on('move', event => {
-    res.json({
-      move: event.move
+    game.on('move', event => {
+        res.json({
+            move: event.move
+        });
     });
-  });
 });
 
 
 router.get('/:gameId', (req, res) => {
-  const { gameId } = req.params;
-  const game = games.find(g => g.gameId === gameId);
+    const { gameId } = req.params;
+    const game = games.find(g => g.gameId === gameId);
 
 });
 
