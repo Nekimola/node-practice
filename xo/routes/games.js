@@ -133,22 +133,6 @@ router.post('/start', (req, res) => {
         });
     });
 
-    game.on('started', () => {
-        const gameInfo = {
-            gameId: game.gameId,
-            hostId: game.hostId,
-            clientId: game.clientId
-        };
-
-
-        game.hostRes.json(Object.assign(gameInfo, {
-            turn: true
-        }));
-        game.clientRes.json(Object.assign(gameInfo, {
-            turn: false
-        }));
-    });
-
     game.connect(clientId, res);
 
     setTimeout(() => {

@@ -26,7 +26,20 @@ module.exports = class Game extends EventEmitter {
             this.state = 'started';
             this.turn = this.hostId;
             this.hostRes = res;
-            this.emit('started');
+
+            const gameInfo = {
+                gameId: this.gameId,
+                hostId: this.hostId,
+                clientId: this.clientId
+            };
+
+            this.hostRes.json(Object.assign(gameInfo, {
+                turn: true
+            }));
+            this.clientRes.json(Object.assign(gameInfo, {
+                turn: false
+            }));
+
             return;
         }
 
