@@ -127,13 +127,13 @@ router.post('/start', (req, res) => {
 
     game.on('connected', () => {
         broadcast(req, {
-            action: 'connected',
+            action: 'gameStart',
             hostId: game.hostId,
             gameId
         });
     });
 
-    game.connect(clientId, res);
+    game.start(clientId, res);
 
     setTimeout(() => {
         if (!res.headersSent) {
@@ -159,19 +159,12 @@ router.post('/:gameId/move', (req, res) => {
         return;
     }
 
-    if (game.moves.indexOf(move) !== -1) {
-        res.status(400).send('Wrong cell.');
-        return;
-    }
+    game.on('error', e => {
+        res.status(e.status).send(e.message);
+    });
 
-    if (((!move.length || move.length % 2) && clientId === game.turn) ||
-        (!(move.length % 2) && clientId !== game.turn)) {
-        res.status(400).send('It\'s not your turn.');
-        return;
-    }
+    game.move(move, clientId);
 
-    game.moves.push(move);
-    game.emit('move', { move });
     res.json({ move });
 });
 

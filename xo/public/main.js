@@ -51,7 +51,7 @@
                     this.games = this.games.filter(g => g.gameId !== msg.gameId);
                 }
 
-                if (msg.action === 'connected') {
+                if (msg.action === 'gameStart') {
                     if (this.clientId === msg.hostId) {
                         setTimeout(() => {
                             GameSrv.start(msg.gameId);

@@ -8,12 +8,13 @@ module.exports = class Game extends EventEmitter {
             state    : 'new',
             clientId : null,
             clientRes: null,
+            hostRes  : null,
             turn     : null,
             moves    : []
         });
     }
 
-    connect (clientId, res) {
+    start (clientId, res) {
         if (this.state === 'pending' && this.hostId !== clientId) {
             this.emit('error', {
                 status: 401,
@@ -49,5 +50,27 @@ module.exports = class Game extends EventEmitter {
             this.clientRes = res;
             this.emit('connected');
         }
+    }
+
+    move (move, clientId) {
+        if (this.moves.indexOf(move) !== -1) {
+            this.emit('error', {
+                status: 400,
+                message: 'You can\'t move here.'
+            });
+            return;
+        }
+
+        if (clientId !== this.turn) {
+            this.emit('error', {
+                status: 400,
+                message: 'It\'s not your turn.'
+            });
+            return;
+        }
+
+        this.moves.push(move);
+        this.turn = clientId === this.clientId ? this.hostId : this.clientId;
+        this.emit('move', { move });
     }
 };
