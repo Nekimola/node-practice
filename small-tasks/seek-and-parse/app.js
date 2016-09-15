@@ -1,63 +1,67 @@
 require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
-const basePath = '//en.wikipedia.org';
 const firstTerm = 'Microsoft';
-const lastTerm = 'Nintendo';
-const depth = 4;
+const lastTerm = 'Xbox';
+const searchDepth = 4;
+
+let path = [];
 
 let queue = [{
-  name: firstTerm,
-  depth: 0
+    name: firstTerm,
+    depth: 0
 }];
 
-const resolve = null;
-const reject = null;
 
-const getTerms = (response, depth) => {
+const parseTerms = (response, depth) => {
     const keys = Object.keys(response.query.pages);
-    const htmlData = response.query.pages[keys[0]].revisions[0]['*'];
-    let links = htmlData.match(/\/wiki\/([\w_\s\(\)\d]+)/g);
+    const htmlData = response.query.pages[keys[0]].revisions && response.query.pages[keys[0]].revisions[0]['*'] || '';
+    let links = htmlData.match(/\/wiki\/([\w_\s\(\)\d]+)/g) || [];
+    let filteredLinks = [];
 
-    return links.map(link => {
-      return {
-        name: link.split('/wiki/')[1],
-        depth
-      };
+    links.forEach(link => {
+        if (filteredLinks.indexOf(link) === -1 && link !== '/wiki/File') {
+            filteredLinks.push(link)
+        }
+    });
+
+    return filteredLinks.map(link => {
+        return {
+            name: link.split('/wiki/')[1],
+            depth
+        };
     });
 };
 
 const getData = () => {
-  let term = queue.shift(),
-      depth = ++term.depth;
+    let term = queue.shift(),
+        depth = term.depth + 1;
 
-  if (depth > 4) {
-    return Promise.reject('Depth');
-  }
+    path[term.depth] = term.name;
 
-  fetch(`${basePath}/w/api.php?format=json&action=query&prop=revisions&titles=${term.name}&rvprop=content&rvsection=0&rvparse`)
-      .then(function(response) {
-          if (response.status >= 400) {
-              throw new Error("Bad response from server");
-          }
-          return response.json();
-      })
-      .then(data => getTerms(data, depth))
-      .then(term => {
-          [].push.apply(queue, terms);
+    if (depth > searchDepth) {
+        return Promise.reject('Depth');
+    }
 
-          setTimeout(getData, 0);
-      }) ;
+    if (term.name === lastTerm) {
+        return Promise.resolve();
+    }
+
+    return fetch(`//en.wikipedia.org/w/api.php?format=json&action=query&prop=revisions&titles=${term.name}&rvprop=content&rvsection=0&rvparse`)
+        .then(response => response.json())
+        .then(data => parseTerms(data, depth))
+        .then(terms => {
+            [].push.apply(queue, terms);
+            console.log(path);
+            return getData();
+        });
 };
 
+getData()
+    .then(() => {
+        console.log('Final path: ', path);
+    })
+    .catch(error => {
+        console.log(error);
+    });
 
-const promise = new Promise((ok, bad) => {
-  resolve = ok;
-  reject = bad;
-
-  getData();
-});
-
-promise.then(() => {
-  console.log(queue);
-});
