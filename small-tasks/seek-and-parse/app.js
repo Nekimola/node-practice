@@ -2,16 +2,17 @@ require('es6-promise').polyfill();
 require('isomorphic-fetch');
 
 const firstTerm = 'Microsoft';
-const lastTerm = 'Xbox';
+const lastTerm = 'Nintendo';
 const searchDepth = 4;
 
-let path = [];
 
-let queue = [{
+const path = [];
+const queue = [{
     name: firstTerm,
     depth: 0
 }];
 
+const visited = [];
 
 const parseTerms = (response, depth) => {
     const keys = Object.keys(response.query.pages);
@@ -36,7 +37,7 @@ const parseTerms = (response, depth) => {
 const getData = () => {
     let term = queue.shift(),
         depth = term.depth + 1;
-
+    visited.push(term.name);
     path[term.depth] = term.name;
 
     if (depth > searchDepth) {
@@ -51,8 +52,8 @@ const getData = () => {
         .then(response => response.json())
         .then(data => parseTerms(data, depth))
         .then(terms => {
-            [].push.apply(queue, terms);
-            console.log(path);
+            queue.push(...terms.filter(t => visited.indexOf(t.name) === -1));
+            console.log(queue.map(x => x.name).join(','));
             return getData();
         });
 };
@@ -64,4 +65,3 @@ getData()
     .catch(error => {
         console.log(error);
     });
-
